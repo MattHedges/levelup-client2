@@ -1,77 +1,69 @@
 import React, { useEffect, useState } from "react"
-import { getEvents } from "../../managers/EventManager.js"
 import { useNavigate } from "react-router-dom"
-import { deleteEvent } from "../../managers/EventManager.js"
-import { joinEvent, leaveEvent } from "../../managers/EventManager.js";
+import { deleteEvent, getEvents, joinEvent, leaveEvent } from "../../managers/EventManager"
+import { EventDate } from "../utils/Date"
+import { EventTime } from "../utils/Time"
+import "./events.css"
 
 export const EventList = (props) => {
     const [ events, setEvents ] = useState([])
-
     const navigate = useNavigate()
-
-    function refreshPage() {
-        window.location.reload(false)
-    }
 
     useEffect(() => {
         getEvents().then(data => setEvents(data))
     }, [])
 
-    const handleJoinEvent = (eventId) => {
-        joinEvent(eventId).then(() => {
-          const updatedEvents = events.map((event) => {
-            if (event.id === eventId) {
-              return { ...event, joined: true };
-            }
-            return event;
-          });
-          setEvents(updatedEvents);
-        });
-      };
-    
-      const handleLeaveEvent = (eventId) => {
-        leaveEvent(eventId).then(() => {
-          const updatedEvents = events.map((event) => {
-            if (event.id === eventId) {
-              return { ...event, joined: false };
-            }
-            return event;
-          });
-          setEvents(updatedEvents);
-        });
-      };
-
     const handleClick = (id) => {
-        deleteEvent(id).then(refreshPage)
+        deleteEvent(id)
+        .then(() => {
+            getEvents().then(data => setEvents(data))
+        })
     }  
 
     return (
         <article className="events">
+            <button className="btn btn-2 icon-create"
+                onClick={() => {
+                    navigate({ pathname: "new" })
+                }}
+            >Register New Event</button>
             {
                 events.map(event => {
                     return <section key={`event--${event.id}`} className="event">
-                        <div className="event__name">{event.name} by {event?.organizer?.full_name}</div>
-                        <div className="event__date">{event.date}</div>
-                        <div className="event__location">{event.location} at {event.location}</div>
-                        <div className="event__game">{event.game.name}</div>
-                        <div className="game__footer">
-                        {event.joined ? (
-              <button onClick={() => handleLeaveEvent(event.id)}>Leave</button>
-            ) : (
-              <button onClick={() => handleJoinEvent(event.id)}>Join</button>
-            )}
+                        <div className="event__game">WHAT: {event.game.name}</div>
+                        <div className="event__date">WHEN: <EventDate date={event.date_of_event}/> at <EventTime time={event.start_time}/></div>
+                        <div className="event__location">WHERE: {event.location}</div>
+                        <div className="event__host">Event Host: {event.host.full_name}</div>
+                        <div className="event__footer">
                             <button
                                 onClick={() => {
-                                    navigate({ pathname: `editevent/${event.id}`})
+                                    navigate({ pathname: `edit/${event.id}`})
                                 }}>Edit</button>
-                        </div>
-                        <div className="game__footer">
                             <button
                                 onClick={() => {
                                     handleClick(event.id)
                                 }}>Delete</button>
+                            {
+                                event.joined 
+                                ?
+                                    <button
+                                    onClick={() => {
+                                        leaveEvent(event.id)
+                                        .then(() => {
+                                            getEvents().then(data => setEvents(data))
+                                        })
+                                    }}>Leave</button>
+                                :
+                                    <button
+                                    onClick={() => {
+                                        joinEvent(event.id)
+                                        .then(() => {
+                                            getEvents().then(data => setEvents(data))
+                                        })
+                                    }}>Join</button>
+                            }                        
                         </div>
-                        </section>
+                    </section>
                 })
             }
         </article>
